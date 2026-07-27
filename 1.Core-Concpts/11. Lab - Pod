@@ -1,0 +1,118 @@
+## 🧪 Practice Lab: Pods (Commands Reference)
+
+A quick-reference set of commands used while practicing Pod creation, inspection, and troubleshooting.
+
+---
+
+**1. Check how many pods exist currently**
+```bash
+kubectl get pods
+```
+
+**2. Create a new pod using the `nginx` image**
+```bash
+kubectl run nginx --image=nginx
+```
+> Then re-run `kubectl get pods` to confirm — you should now see 1 more pod than before.
+
+**3. Verify total pod count again**
+```bash
+kubectl get pods
+```
+
+**4. Create another new pod using the `nginx` image (different name if needed)**
+```bash
+kubectl run <pod-name> --image=nginx
+```
+
+**5. Check which image is used by pods with the `newpods-` prefix**
+```bash
+kubectl describe pod newpods-<id>
+```
+> Look for the `Image:` field under the container section of the output.
+
+**6. Check which nodes the pods are scheduled on**
+```bash
+kubectl get pods -o wide
+```
+> The `-o wide` flag adds extra columns including `NODE` and `IP`.
+
+**7. Check how many containers are part of the `webapp` pod**
+```bash
+kubectl describe pod webapp
+```
+> Count the entries under the `Containers:` section — each container is a separate sub-block.
+
+**8. Check the state of a specific container (e.g. `agentx`) inside `webapp`**
+```bash
+kubectl describe pod webapp
+```
+> Look under `Containers: agentx: State:` — could be `Running`, `Waiting`, or `Terminated`.
+
+**9. Understanding the `READY` column**
+```bash
+kubectl get pods
+```
+> `READY` shows `<containers ready>/<total containers>` in that pod.
+> Example: `1/2` means only 1 out of 2 containers in the pod are currently ready/running.
+
+**10. Delete the `webapp` pod**
+```bash
+kubectl delete pod webapp
+```
+
+**11. Create a new pod named `redis` with an intentionally incorrect image `redis123` (using a YAML file)**
+```yaml
+# redis-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+    - name: redis
+      image: redis123
+```
+```bash
+kubectl create -f redis-pod.yaml
+```
+> ⚠️ This will intentionally fail to run properly (image doesn't exist) — expected status: `ErrImagePull` or `ImagePullBackOff`. Don't fix it yet — this simulates a real troubleshooting scenario.
+
+**12. Fix the pod by correcting the image to `redis`**
+
+You can either edit the YAML file and re-apply:
+```yaml
+spec:
+  containers:
+    - name: redis
+      image: redis   # corrected
+```
+```bash
+kubectl apply -f redis-pod.yaml
+```
+
+Or edit the live object directly:
+```bash
+kubectl edit pod redis
+```
+> Note: `kubectl edit` opens the pod spec in your default editor — change the `image` field, save, and exit. Kubernetes will recreate the container with the corrected image (existing pods can't have their image field patched in-place without a restart of the container).
+
+> ✅ After fixing, verify with:
+> ```bash
+> kubectl get pods
+> ```
+> The `redis` pod should now show `STATUS: Running` and `READY: 1/1`.
+
+---
+
+### 🚀 Cheat Sheet — Useful Pod Commands
+| Command | Purpose |
+|---|---|
+| `kubectl get pods` | List all pods |
+| `kubectl get pods -o wide` | List pods with node/IP info |
+| `kubectl describe pod <name>` | Full details: image, state, events, containers |
+| `kubectl run <name> --image=<image>` | Quickly create a pod imperatively |
+| `kubectl create -f <file>.yaml` | Create a pod from a YAML file |
+| `kubectl apply -f <file>.yaml` | Create/update a pod from a YAML file |
+| `kubectl edit pod <name>` | Edit a live pod's spec directly |
+| `kubectl delete pod <name>` | Delete a pod |
