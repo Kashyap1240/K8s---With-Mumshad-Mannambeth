@@ -1,0 +1,88 @@
+# kubectl api-resources & kubectl explain
+
+## 1. Why These Commands? 🚀
+
+You can learn a lot about resources and their fields **without leaving the terminal**. This is especially useful when you can't find something in the documentation pages (and handy in the exam).
+
+## 2. `kubectl api-resources` 📋
+
+Lists **all resources** available in the cluster.
+
+```bash
+kubectl api-resources
+```
+
+Use it when you:
+
+- forgot a **resource name** or its **short name**
+- are unsure of the **API version** to use (`v1`? `apps/v1`?)
+- are unsure of the exact **case** of the resource name (`Kind`) for a definition file
+
+Typical columns:
+
+| Column       | Meaning                                         | Example         |
+|--------------|-------------------------------------------------|-----------------|
+| `NAME`       | Resource name                                   | `deployments`   |
+| `SHORTNAMES` | Short form to use in commands                   | `deploy`        |
+| `APIVERSION` | Value for `apiVersion` in YAML                  | `apps/v1`       |
+| `NAMESPACED` | Whether it lives in a namespace                 | `true`          |
+| `KIND`       | Value for `kind` in YAML (exact case)           | `Deployment`    |
+
+## 3. `kubectl explain <resource>` 🔎
+
+Once you know the resource name, get details about its **fields and types**.
+
+```bash
+kubectl explain pods
+```
+
+- Lists the **top-level fields**: `apiVersion`, `kind`, `metadata`, `spec`, `status`.
+- Shows the **type** of each field (e.g. `apiVersion` is a `string`) and a **description** of what it does.
+- ⚠️ This is **not comprehensive**; it only shows the top level.
+
+### Going deeper: add the field path
+
+```bash
+kubectl explain pods.spec
+```
+
+- Appends `.spec` to list the **sub-fields** within `spec`.
+- Still only shows the sub-properties of the parent you named, so it's **not comprehensive** either.
+- Keep adding levels to dig further, e.g. `kubectl explain pods.spec.containers`.
+
+### Full list: `--recursive`
+
+```bash
+kubectl explain pods --recursive
+```
+
+- Outputs the **entire list of fields** available on that resource, in the structure you'd write in a YAML file.
+- This makes it very easy to **build a YAML file** from it.
+
+## 4. Typical Workflow 🧭
+
+```
+kubectl api-resources            →  find the resource name, API version, kind
+        │
+        ▼
+kubectl explain <resource>       →  see top-level fields and types
+        │
+        ▼
+kubectl explain <resource>.spec  →  go deeper into a field
+        │
+        ▼
+kubectl explain <resource> --recursive  →  full field tree, then write the YAML
+```
+
+## 🚀 Summary Cheat Sheet
+
+| Command                                    | Purpose                                              |
+|--------------------------------------------|------------------------------------------------------|
+| `kubectl api-resources`                    | List all resources, short names, API versions, kinds |
+| `kubectl explain <resource>`               | Top-level fields, types and descriptions             |
+| `kubectl explain <resource>.<field>`       | Sub-fields of a specific field                       |
+| `kubectl explain <resource> --recursive`   | Complete list of all fields (YAML structure)         |
+
+- `api-resources` answers: **what is the resource called, and which API version / kind?**
+- `explain` answers: **what fields does it have, and what types?**
+- Plain `explain` and `explain x.y` are **not comprehensive**; use `--recursive` for everything.
