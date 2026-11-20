@@ -1,0 +1,110 @@
+# Kubernetes Service: ClusterIP
+
+## 1. Why Do We Need ClusterIP? 🚀
+
+A full-stack web application usually has different kinds of pods for different tiers:
+
+- Front-end web server pods
+- Back-end server pods
+- Key-value store pods (e.g. **Redis**)
+- Persistent database pods (e.g. **MySQL**)
+
+These tiers need to talk to each other:
+
+```
+Front end ──► Back end ──► Redis
+                      └──► MySQL
+```
+
+**The problem with using pod IPs directly:**
+
+- Pod IPs are **not static**. Pods can go down at any time and new ones are created constantly.
+- If a front-end pod (e.g. `10.244.0.3`) wants to reach the back end, **which of the back-end pods** should it pick, and **who decides**?
+
+📌 A **Service** groups the pods of a tier together and gives them **one single interface** for other pods to use.
+
+## 2. How ClusterIP Works ⚙️
+
+- A Service for the back-end pods groups them and exposes a single access point.
+- Requests are forwarded to one of the pods in the group **randomly**.
+- Create similar Services for Redis, MySQL, etc., so the back end reaches them through the Service, not through pod IPs.
+- Each Service gets an **IP and a name inside the cluster**. Other pods should use this **name** to reach it.
+- This type of Service is called **ClusterIP**.
+
+✅ Benefit: each layer can **scale or move** freely without breaking communication between the other layers. This is what makes a microservices-based app easy to deploy on Kubernetes.
+
+## 3. Creating a ClusterIP Service 📝
+
+Same template as always: `apiVersion`, `kind`, `metadata`, `spec`.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  type: ClusterIP
+  ports:
+    - targetPort: 80
+      port: 80
+  selector:
+    app: myapp
+    type: back-end
+```
+
+Field notes:
+
+| Field        | Value / Meaning                                                      |
+|--------------|----------------------------------------------------------------------|
+| `apiVersion` | `v1`                                                                 |
+| `kind`       | `Service`                                                            |
+| `name`       | `backend`, the name other pods will use to reach the Service         |
+| `type`       | `ClusterIP`. This is the **default**, so it can be omitted           |
+| `targetPort` | Port on the **pod** where the back end is exposed (80 here)          |
+| `port`       | Port on the **Service** where it is exposed (80 here)                |
+| `selector`   | Labels copied from the pod definition; this links Service → pods     |
+
+## 4. Linking the Service to Pods 🔗
+
+Copy the labels from the pod definition file into `spec.selector`.
+
+Pod definition with the matching labels:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    type: back-end
+spec:
+  containers:
+    - name: backend-container
+      image: nginx
+```
+
+## 5. Commands 👀
+
+```bash
+kubectl create -f service-definition.yaml   # Create the Service
+kubectl get services                        # Check its status / cluster IP
+```
+
+Accessing the Service from other pods: use the **ClusterIP** or the **Service name** (`backend`).
+
+## 🚀 Summary Cheat Sheet
+
+| Command / Concept                 | Purpose                                      |
+|-----------------------------------|----------------------------------------------|
+| `kubectl create -f <file>.yaml`   | Create the ClusterIP Service                 |
+| `kubectl get services`            | List Services and see the cluster IP         |
+
+- Pod IPs are **not stable**, so don't use them for internal communication.
+- **ClusterIP** gives a group of pods a single, stable internal IP and name.
+- ClusterIP is the **default** Service type.
+- Traffic is forwarded to one of the matching pods **randomly**.
+- Only reachable **inside the cluster**; for external access use NodePort or LoadBalancer.
+- Services link to pods via **selector ↔ pod labels**.
+- Other pods access the Service using its **ClusterIP or name**.
+- Each tier (front end, back end, Redis, DB) gets its own Service and can scale independently.
